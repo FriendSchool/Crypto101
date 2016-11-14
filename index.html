@@ -1,0 +1,270 @@
+<html>
+<head>
+<script src="sjcl.js"></script>
+<style>
+select {
+    width: 200px;
+}
+textarea {
+    width: 350px;
+    height: 150px;
+}
+.top-box {
+    float: left;
+    margin: 5px;
+    padding: 5px;
+    border: thin solid black;
+    text-align: center;
+}
+#modal-wrapper {
+    background-color: rgba(0,0,0,0.5);
+    top: 0;
+    left: 0;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+.modal {
+    background-color: pink;
+    border: thin solid red;
+    width: 400px;
+    position: relative;
+    margin-left: auto; margin-right: auto;
+    display: none;
+    padding: 10px;
+}
+#encrypt {
+    background-color: lightgreen;
+}
+#decrypt {
+    background-color: lightblue;
+}
+</style>
+</head>
+<body>
+<div id="decrypt" class="top-box">
+    <button id="generate-keypair">+ Generate keypair</button>
+    <select id="keypairs"></select>
+    <button id="modify-keypair">View keypair</button>
+    <button id="delete-keypair">Delete keypair</button>
+    <br>
+    <textarea id="decrypt-input"></textarea>
+    <div><button id="decrypt-button">vvv Decrypt vvv</button></div>
+    <textarea id="decrypt-output" readonly></textarea>
+</div>
+
+<div id="encrypt" class="top-box">
+    <button id="add-pubkey">+ Add public key</button>
+    <select id="pubkeys"></select>
+    <button id="modify-pubkey">Modify key</button>
+    <button id="delete-pubkey">Delete key</button>
+    <br>
+    <textarea id="encrypt-input"></textarea>
+    <div><button id="encrypt-button">vvv Encrypt vvv</button></div>
+    <textarea id="encrypt-output" readonly></textarea>
+</div>
+
+
+
+<div id="modal-wrapper">
+    <div class="modal" id="keypair-view">
+        <div>Name</div>
+        <input type="text" id="keypair-name">
+        <div>Public key</div>
+        <textarea id="keypair-pub" readonly></textarea>
+        <div>Private key (don't share this!!)</div>
+        <textarea id="keypair-priv" readonly></textarea>
+        <input type="hidden" id="keypair-id">
+        <input type="hidden" id="keypair-isnew">
+        <button id="save-keypair">Save</button>
+    </div>
+
+    <div class="modal" id="pubkey-view">
+        <h1>Add Public Key</h1>
+        <div>When someone else shares their public key with you, you can import it here.</div>
+        <br>
+        <div>Name</div>
+        <input type="text" id="pubkey-name">
+        <div>Public key</div>
+        <textarea id="pubkey-pub"></textarea>
+        <input type="hidden" id="pubkey-id">
+        <input type="hidden" id="pubkey-isnew">
+        <button id="save-pubkey">Save</button>
+    </div>
+</div>
+<script>
+
+var gebi = document.getElementById.bind(document);
+
+var keypairs = getKeypairs();
+for(var i in keypairs) {
+    var keypair = keypairs[i];
+    var option = document.createElement("option");
+    option.value = keypair.id;
+    option.textContent = keypair.name;
+    gebi("keypairs").append(option);
+}
+
+var pubkeys = getPubkeys();
+for(var i in pubkeys) {
+    var pubkey = pubkeys[i];
+    var option = document.createElement("option");
+    option.value = pubkey.id;
+    option.textContent = pubkey.name;
+    gebi("pubkeys").append(option);
+}
+
+gebi("generate-keypair").addEventListener("click", function() {
+    var pair = sjcl.ecc.elGamal.generateKeys(256);
+    var pub = pair.pub.get(), priv = pair.sec.get();
+    // Serialized public key:
+    pub = sjcl.codec.base64.fromBits(pub.x.concat(pub.y));
+    priv = sjcl.codec.base64.fromBits(priv);
+
+    gebi("keypair-view").style.display = "block";
+    gebi("modal-wrapper").style.display = "block";
+
+    gebi("keypair-name").value = "";
+    gebi("keypair-pub").value = pub;
+    gebi("keypair-priv").value = priv;
+    gebi("keypair-id").value = Math.random();
+    gebi("keypair-isnew").value = "true";
+});
+
+gebi("modify-keypair").addEventListener("click", function() {
+    var id = gebi("keypairs").value;
+    var keypair = getKeypairs()[id];
+
+    if(!keypair) { return; }
+
+    gebi("keypair-view").style.display = "block";
+    gebi("modal-wrapper").style.display = "block";
+
+    gebi("keypair-name").value = keypair.name;
+    gebi("keypair-pub").value = keypair.pub;
+    gebi("keypair-priv").value = keypair.priv;
+    gebi("keypair-id").value = id;
+    gebi("keypair-isnew").value = "false";
+});
+
+gebi("save-keypair").addEventListener("click", function() {
+    gebi("keypair-view").style.display = "none";
+    gebi("modal-wrapper").style.display = "none";
+
+    saveKeypair(gebi("keypair-id").value, gebi("keypair-name").value, gebi("keypair-pub").value, gebi("keypair-priv").value);
+
+    if(gebi("keypair-isnew").value == "true") {
+        addOption("keypairs", gebi("keypair-id").value, gebi("keypair-name").value);
+    }
+});
+
+gebi("add-pubkey").addEventListener("click", function() {
+    gebi("pubkey-view").style.display = "block";
+    gebi("modal-wrapper").style.display = "block";
+
+    gebi("pubkey-name").value = "";
+    gebi("pubkey-pub").value = "";
+    gebi("pubkey-id").value = Math.random();
+    gebi("pubkey-isnew").value = "true";
+});
+
+gebi("modify-pubkey").addEventListener("click", function() {
+    var id = gebi("pubkeys").value;
+    var pubkey = getPubkeys()[id];
+
+    if(!pubkey) { return; }
+
+    gebi("pubkey-view").style.display = "block";
+    gebi("modal-wrapper").style.display = "block";
+
+    gebi("pubkey-name").value = pubkey.name;
+    gebi("pubkey-pub").value = pubkey.pub;
+    gebi("pubkey-id").value = id;
+    gebi("pubkey-isnew").value = "false";
+});
+
+gebi("save-pubkey").addEventListener("click", function() {
+    gebi("pubkey-view").style.display = "none";
+    gebi("modal-wrapper").style.display = "none";
+
+    savePubkey(gebi("pubkey-id").value, gebi("pubkey-name").value, gebi("pubkey-pub").value);
+
+    if(gebi("pubkey-isnew").value == "true") {
+        addOption("pubkeys", gebi("pubkey-id").value, gebi("pubkey-name").value);
+    }
+});
+
+gebi("encrypt-button").addEventListener("click", function() {
+    var pub = getPubkeys()[gebi("pubkeys").value];
+    if(!pub) { return; }
+
+    try {
+    pub = new sjcl.ecc.elGamal.publicKey(
+        sjcl.ecc.curves.c256, 
+        sjcl.codec.base64.toBits(pub.pub)
+    );
+    } catch(e) {
+        alert("Error occured; does your public key have a typo?");
+    }
+
+    gebi("encrypt-output").value = sjcl.encrypt(pub, gebi("encrypt-input").value);
+
+});
+
+gebi("decrypt-button").addEventListener("click", function() {
+    var keypair = getKeypairs()[gebi("keypairs").value];
+    if(!keypair) { return; }
+
+    var priv = new sjcl.ecc.elGamal.secretKey(
+        sjcl.ecc.curves.c256, 
+        sjcl.ecc.curves.c256.field.fromBits(sjcl.codec.base64.toBits(keypair.priv))
+    );
+
+    try {
+        gebi("decrypt-output").value = sjcl.decrypt(priv, gebi("decrypt-input").value);
+    } catch(e) {
+        alert("Error occured; are you using the right key?");
+    }
+});
+
+function saveKeypair(id, name, pub, priv) {
+    var keypairs = getKeypairs();
+    if(keypairs[id]) {
+        keypairs[id].name = name;
+    } else {
+        keypairs[id] = { id: id, name: name, pub: pub, priv: priv };
+    }
+    localStorage.setItem("keypairs", JSON.stringify(keypairs));
+}
+
+function getKeypairs() {
+    var keypairs = JSON.parse(localStorage.getItem("keypairs"));
+    return keypairs || {};
+}
+
+function savePubkey(id, name, pub) {
+    var pubkeys = getPubkeys();
+    if(pubkeys[id]) {
+        pubkeys[id].name = name;
+    } else {
+        pubkeys[id] = { id: id, name: name, pub: pub };
+    }
+    localStorage.setItem("pubkeys", JSON.stringify(pubkeys));
+}
+
+function getPubkeys() {
+    var pubkeys = JSON.parse(localStorage.getItem("pubkeys"));
+    return pubkeys || {};
+}
+
+function addOption(selectId, id, name) {
+    var option = document.createElement("option");
+    option.value = id;
+    option.textContent = name;
+    gebi(selectId).append(option);
+}
+
+</script>
+</body>
+</html>
