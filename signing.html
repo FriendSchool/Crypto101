@@ -106,7 +106,7 @@ for(var i in keypairs) {
     var option = document.createElement("option");
     option.value = keypair.id;
     option.textContent = keypair.name;
-    gebi("keypairs").append(option);
+    gebi("keypairs").appendChild(option);
 }
 
 var pubkeys = getPubkeys();
@@ -115,7 +115,7 @@ for(var i in pubkeys) {
     var option = document.createElement("option");
     option.value = pubkey.id;
     option.textContent = pubkey.name;
-    gebi("pubkeys").append(option);
+    gebi("pubkeys").appendChild(option);
 }
 
 gebi("generate-keypair").addEventListener("click", function() {
