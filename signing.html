@@ -50,9 +50,9 @@ textarea {
     <button id="modify-keypair">View keypair</button>
     <button id="delete-keypair">Delete keypair</button>
     <br>
-    <textarea id="sign-input"></textarea>
+    <div><textarea id="sign-input"></textarea></div>
     <div><button id="sign-button">vvv Sign vvv</button></div>
-    <textarea id="sign-output" readonly></textarea>
+    <div><textarea id="sign-output" readonly></textarea></div>
 </div>
 
 <div id="verify" class="top-box">
@@ -79,7 +79,7 @@ textarea {
         <textarea id="keypair-priv" readonly></textarea>
         <input type="hidden" id="keypair-id">
         <input type="hidden" id="keypair-isnew">
-        <button id="save-keypair">Save</button>
+        <div><button id="save-keypair">Save</button></div>
     </div>
 
     <div class="modal" id="pubkey-view">
@@ -92,7 +92,7 @@ textarea {
         <textarea id="pubkey-pub"></textarea>
         <input type="hidden" id="pubkey-id">
         <input type="hidden" id="pubkey-isnew">
-        <button id="save-pubkey">Save</button>
+        <div><button id="save-pubkey">Save</button></div>
     </div>
 </div>
 <script>
